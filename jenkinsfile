@@ -43,7 +43,7 @@ pipeline {
 
         stage('DAST - OWASP ZAP') {
             steps {
-                sh '/opt/zap/zap.sh -cmd -quickurl http://VM_PROD_IP:8080 -quickout zap_report.html'
+                sh '/opt/zap/zap.sh -cmd -quickurl http://127.0.0.1:8080 -quickout zap_report.html'
             }
         }
 
