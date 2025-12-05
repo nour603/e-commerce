@@ -1,38 +1,31 @@
+
 pipeline {
     agent any
 
-    environment {
-        VM_PROD = "user@127.0.0.1"
-
-        SONAR = "SonarQube"             
-    }
-
     stages {
+
         stage('Checkout') {
             steps {
                 echo "Checkout du code depuis GitHub"
-                git 'https://github.com/nour603/e-commerce.git'
+                git branch: 'main', url: 'https://github.com/nour603/e-commerce.git'
             }
         }
 
         stage('Build') {
             steps {
-                echo "Build du projet avec Maven"
                 sh 'mvn clean install'
             }
         }
 
         stage('Test') {
             steps {
-                echo "Execution des tests unitaires"
                 sh 'mvn test'
             }
         }
 
         stage('SAST - SonarQube') {
             steps {
-                echo "Analyse SAST avec SonarQube"
-                withSonarQubeEnv("${SONAR}") {
+                withSonarQubeEnv('SonarQube') {
                     sh 'mvn sonar:sonar'
                 }
             }
@@ -40,7 +33,6 @@ pipeline {
 
         stage("Quality Gate") {
             steps {
-                echo "Vérification du Quality Gate"
                 script {
                     timeout(time: 5, unit: 'MINUTES') {
                         waitForQualityGate abortPipeline: true
@@ -51,25 +43,20 @@ pipeline {
 
         stage('DAST - OWASP ZAP') {
             steps {
-                echo "Scan DAST avec OWASP ZAP sur VM_prod"
-                sh '/opt/zap/zap.sh -cmd -quickurl http://127.0.0.1:8888 -quickout zap_report.html'
+                sh '/opt/zap/zap.sh -cmd -quickurl http://VM_PROD_IP:8080 -quickout zap_report.html'
             }
         }
 
         stage('Deploy to Prod') {
             steps {
-                echo "Déploiement sur VM_prod"
-                sh 'scp target/*.war ${VM_PROD}:/var/lib/tomcat9/webapps/'
+                sh 'scp target/*.war user@VM_PROD:/var/lib/tomcat9/webapps/'
             }
         }
     }
 
     post {
-        success {
-            echo 'Pipeline terminé avec succès !'
-        }
         failure {
-            echo 'Pipeline échoué, vérifier les logs.'
+            echo "Pipeline échoué, vérifier les logs."
         }
     }
 }
